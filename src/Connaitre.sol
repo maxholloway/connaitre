@@ -43,21 +43,6 @@ contract Connaitre is IConnaitre {
         IMAGE_IMAGE = imageImage_;
     }
 
-    // // Modifier to guarantee OWNER is invoking function
-    // modifier isOwner() {
-    //     if (msg.sender != OWNER) {
-    //         revert AuthError();
-    //     }
-    //     _;
-    // }
-
-    // Owner takes funds out of the protocol after a delay.
-    // A convenience method that isn't necessary, since
-    // the contract OWNER should 
-    // function defund(address receiver_) external isOwner {
-    //     revert NotImplementedError();
-    // }
-
     modifier isNotRevervedWindow() {
         // Make sure we're not already in a reserved window
         if (_inReservedWindow()) {
