@@ -5,7 +5,7 @@ interface IConnaitre {
     
     // Bounty creator creates the bounty contract and
     // stores their hash(hash(desired ata)) as imageImage_.
-    // constructor(address tokenAddress_, address owner_, bytes memory imageImage_);
+    // constructor(address owner_, address tokenAddress_, uint256 bountySize_, uint256 escrowAmount_, uint256 escrowBlocks_, bytes32 imageImage_);
 
     // Modifier to guarantee owner is invoking function
     // modifier isOwner();
@@ -24,5 +24,5 @@ interface IConnaitre {
     // funds to the receiver_. The `image_` input must
     // be equal to hash(desired data) of the knowledge that the prover
     // wanted to have proven. Also returns the escrow amount.
-    function proveKnowledgeAndClaim(bytes calldata image_, address receiver_) external;
+    function proveKnowledgeAndClaim(bytes32 image_, address receiver_) external;
 }
