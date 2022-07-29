@@ -24,5 +24,11 @@ A skeptical reader may wonder, "why make a reserve window instead of having prov
 
 Unfortunately there is still the possibility that the anon running the bounty program might themselves front-run a prover's attempts. For instance, if the anon sees that a prover was willing to put an escrow down in an effort to claim the bounty, this may be enough information for the anon to learn that their identity has been compromised, at which point they might try to invoke `reserveWindow()` in front of the prover. The prover can make this difficult by deploying a contract of their own to invoke `reserveWindow()`, but that is still not fool-proof from a motivated mem-pool snooping anon.
 
+## Contributing
+Feel free to contact me on twitter at [@max_holloway](https://twitter.com/max_holloway) or raise an issue here if you think you can help out!
+
+## Donation
+If you like this work, don't buy me a coffee. Instead, do me a favor and donate to a [high impact charity](https://www.givewell.org/about/donate/cryptocurrency). 🙏
+
 ## Disclosure
 This content is provided as-is. This was put together in an afternoon and is not meant to be used in production unless further tested. Tbh this was mostly meant as a fun way for me to learn how to use foundry.
