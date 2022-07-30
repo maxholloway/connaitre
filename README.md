@@ -6,7 +6,9 @@
 </a>
 
 ## Intro
-Bug bounties are cool because companies can tap into a global talent pool to discover problems. Wouldn't it be *also* be cool if there were a way for anons to tap into a global talent pool of internet snoopers to see if anyone can discover their secret identity?
+Bug bounties are cool because companies can tap into a global talent pool to discover problems. Wouldn't it *also* be cool if there were a way for anons to tap into a global talent pool of internet snoopers to see if anyone can discover their secret identity?
+
+Here's a way to do just this, all while keeping the anon's identity hidden and remaining cognizant of the public mempool.
 
 ## Bounty constraints
 Here are some constraints imposed by Alice the Anon and Sammy the Snooper.
@@ -27,7 +29,8 @@ The way to address these constraints is through a smart contract, of course!
 The Connaitre contract has a lump sum payoff to the first to successfully invoke the `proveKnowledgeAndClaim()` function. This is typically cause for concern, since miners snooping in the mempool may use their transaction inclusion and transaction ordering powers to maximize their own bottom line. We address each separately.
 
 **Will miners include a block with this transaction?**
-Assuming that the miner is not directly involved in the search for this anon's 
+Probably. Assuming the miner doesn't actually know the anon's private key, they don't have any prospect of prioritizing a transaction of their own above this one in the near future.
+
 
 **Will miners modify this transaction's order in the block to their advantage?**
 The only way that transaction reordering helps here is if reordering the transactions means the miner can seek rent from (a) submitting the proof themselves, or (b) taking a higher gas fee from a search who submits the proof. However, creating this proof requires that the prover know the private key `K_s` to `ANON_INFO_ADDRESS`. Assuming that mempool snoopers don't have access to `K_s`, no intrablock transaction reordering attacks will occur.
