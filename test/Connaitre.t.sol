@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import "./utils/TestToken.sol";
 import "./utils/Utilities.sol";
 
-import "../src/ConnaitreNew.sol";
+import "../src/Connaitre.sol";
 
 contract ConnaitreNewTest is Test {
 
@@ -18,14 +18,13 @@ contract ConnaitreNewTest is Test {
     TestToken internal bountyToken;
     Utilities internal utils;
 
-    address ANON_INFO_ADDRESS = 0x16e7663403582f8239C92724ceE6038b1e8AA4C4;
-    uint256 BOUNTY_SIZE = 1_000_000e18;
+    uint256 immutable internal BOUNTY_SIZE = 1_000_000e18;
     
+    address immutable internal ANON_INFO_ADDRESS = 0x16e7663403582f8239C92724ceE6038b1e8AA4C4;
     address immutable internal BOUNTY_RECEIVER_ADDRESS = 0xEA15ffdA91B29882F0163f7eE753b920024F8822;
-
-    uint8 v = 27;
-    bytes32 r = 0x70f9ff850d78a6d3d078428997c0a3b7a9c3e2b40af17585380718ef09adf1bc;
-    bytes32 s = 0x71afcf2b491b7851d0a673697e7e052cc3267716c20a5d268a5069349024d396;
+    uint8 immutable internal v = 27;
+    bytes32 immutable internal r = 0x70f9ff850d78a6d3d078428997c0a3b7a9c3e2b40af17585380718ef09adf1bc;
+    bytes32 immutable internal s = 0x71afcf2b491b7851d0a673697e7e052cc3267716c20a5d268a5069349024d396;
 
     function setUp() public {
         utils = new Utilities();
@@ -62,9 +61,18 @@ contract ConnaitreNewTest is Test {
             address(bountyToken),
             BOUNTY_SIZE
         );
-        bountyToken.transfer(address(connaitreContract), BOUNTY_SIZE);
         vm.stopPrank();
 
+        // Verify that it reverts if a prover tries to prove before the account is funded
+        vm.startPrank(prover);
+        vm.expectRevert(Connaitre.ContractNotFundedError.selector);
+        connaitreContract.proveKnowledgeAndClaim(BOUNTY_RECEIVER_ADDRESS, v, r, s);
+        vm.stopPrank();
+
+        // Transfer token to the address
+        vm.startPrank(anon);
+        bountyToken.transfer(address(connaitreContract), BOUNTY_SIZE);
+        vm.stopPrank();
 
         // Roll forward 100 blocks
         vm.roll(block.number + 100);
@@ -104,11 +112,14 @@ contract ConnaitreNewTest is Test {
         );
 
         assertEq(
+            bountyToken.balanceOf(anon),
+            0
+        );
+
+        assertEq(
             bountyToken.balanceOf(bystander),
             0
         );
     }
-
-    
     
 }

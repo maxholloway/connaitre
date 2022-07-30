@@ -10,9 +10,6 @@ contract Connaitre {
     error InvalidSignError();
     error ContractNotFundedError();
 
-    event SignerAddress(address);
-    event ReceiverHash(bytes32);
-
     address immutable public ANON_INFO_ADDRESS; // ethereum address associated with public key associated with private key associated with anon's private data
     IERC20 immutable public BOUNTY_TOKEN; // ERC20 token to be used for the bounty
     uint256 immutable public BOUNTY_SIZE; // number of BOUNTY_TOKEN to be transferred
@@ -73,7 +70,7 @@ contract Connaitre {
     pure internal 
     returns (address){
         bytes32 hashedMessage = keccak256(abi.encodePacked(receiver_));
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32"; // note: this requires that the client abide by EIP-191 when signing
         bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, hashedMessage));
 
         return ecrecover(prefixedHashMessage, v_, r_, s_);
