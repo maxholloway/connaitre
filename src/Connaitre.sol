@@ -5,114 +5,74 @@ pragma solidity ^0.8.13;
 import "./IConnaitre.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-contract Connaitre is IConnaitre {
+contract Connaitre {
 
-    error AuthError();
-    error NotImplementedError();
-    error NoInterruptingReservationError();
-    error NotInWindowError();
-    error InvalidProverError();
-    error InvalidProofError();
-    error ContactNotFundedError();
+    error InvalidSignError();
+    error ContractNotFundedError();
 
-    address immutable public OWNER;
-    IERC20 immutable public BOUNTY_TOKEN;
+    address immutable public ANON_INFO_ADDRESS; // ethereum address associated with public key associated with private key associated with anon's private data
+    IERC20 immutable public BOUNTY_TOKEN; // ERC20 token to be used for the bounty
     uint256 immutable public BOUNTY_SIZE; // number of BOUNTY_TOKEN to be transferred
 
-    uint256 immutable public ESCROW_AMOUNT; // amount needed to do an escrow
-    uint256 immutable public ESCROW_BLOCKS; // number of blocks over which escrow is valid
-
-    bytes32 immutable public IMAGE_IMAGE;
-
-    uint256 internal blockLastReservation;
-    address internal callerLastReservation;
-
-    event Data(uint256 data);
-
-    // Bounty creator creates the bounty contract and
-    // stores their hash(hash(desired ata)) as imageImage_.
-    constructor(address owner_, address tokenAddress_, uint256 bountySize_, uint256 escrowAmount_, uint256 escrowBlocks_, bytes32 imageImage_) {
-        // Set state variables
-        OWNER = owner_;
+    constructor(address anonInfoAddress_, address tokenAddress_, uint256 bountySize_) {
+        ANON_INFO_ADDRESS = anonInfoAddress_;
         BOUNTY_TOKEN = IERC20(tokenAddress_);
         BOUNTY_SIZE = bountySize_;
-        
-        ESCROW_AMOUNT = escrowAmount_;
-        ESCROW_BLOCKS = escrowBlocks_;
-        
-        IMAGE_IMAGE = imageImage_;
-    }
-
-    modifier isNotRevervedWindow() {
-        // Make sure we're not already in a reserved window
-        if (_inReservedWindow()) {
-            revert NoInterruptingReservationError();
-        }
-        _;
-    }
-
-    // Escrows an amount in funding so that prover_
-    // is the only address that can claim the 
-    // bounty over the next window of blocks.
-    // Note: requires users to approve spending separately
-    function reserveWindow(address prover_) isNotRevervedWindow external {
-        // Transfer the tokens to this address; if transfer fails, reject escrow
-        require(
-            BOUNTY_TOKEN.transferFrom(msg.sender, address(this), ESCROW_AMOUNT),
-            "Failed to transfer escrow."
-        );
-
-        // Reserve the window for the prover_
-        blockLastReservation = block.number;
-        callerLastReservation = prover_;
     }
 
     modifier contractIsFunded() {
-        if (BOUNTY_TOKEN.balanceOf(address(this)) < BOUNTY_SIZE + ESCROW_AMOUNT) {
-            revert ContactNotFundedError();
+        if (BOUNTY_TOKEN.balanceOf(address(this)) < BOUNTY_SIZE) {
+            revert ContractNotFundedError();
         }
-        _;
-    }
-
-    modifier validProver() {
-        if (!_inReservedWindow()) {
-            revert NotInWindowError();
-        }
-
-        if (msg.sender != callerLastReservation) {
-            revert InvalidProverError();
-        }
-
         _;
     }
 
     // Submits a proof. If the proof is valid, transfer
-    // funds to the receiver_. The `image_` input must
-    // be equal to hash(desired data) of the knowledge that the prover
-    // wanted to have proven. Also returns the escrow amount.
-    function proveKnowledgeAndClaim(bytes32 image_, address receiver_) validProver contractIsFunded external {
-        // Verify that hash(image_) == IMAGE_IMAGE
-        if (keccak256(abi.encodePacked(image_)) != IMAGE_IMAGE) {
-            revert InvalidProofError();
+    // funds to the receiver_.
+    function proveKnowledgeAndClaim(
+        address receiver_,
+        uint8 v_,
+        bytes32 r_,
+        bytes32 s_
+    ) 
+    external contractIsFunded {
+        // 1. Verify that signer of the data is the ANON_INFO_ADDRESS owner
+        address signer = _getSigner(
+            receiver_,
+            v_,
+            r_,
+            s_
+        );
+
+        if (signer != ANON_INFO_ADDRESS) {
+            revert InvalidSignError();
         }
 
-        // Transfer both the escrow and the original amount back to the recipient
+        // Transfer both the bounty amount back to the recipient
         BOUNTY_TOKEN.transfer(
             receiver_, // Note: potentially replace this with either `msg.sender` or `callerLastReservation`
-            BOUNTY_SIZE + ESCROW_AMOUNT
+            BOUNTY_SIZE
         );
     }
 
-    // Function to determine if the current reserve window is valid
-    function _inReservedWindow() internal view returns (bool){
-        if (
-                (blockLastReservation > 0)
-                && (blockLastReservation + ESCROW_BLOCKS >= block.number)
-                && (blockLastReservation                 <= block.number) // Note: is it ever possible for this condition to be false?
-            ) {
-            return true;
-        }
+    // Here, the receiver_ is the payload of our message to be signed.
+    // To pass it into the signature scheme, it must first be hashed,
+    // and then it must be made to fit EIP-191 signed message format,
+    // then hashed again. Finally, once this ultimate payload is combined 
+    // with v, r, and s, we can derive the public address of the signer
+    // via ecrecover().
+    function _getSigner(
+        address receiver_,
+        uint8 v_,
+        bytes32 r_,
+        bytes32 s_
+    )
+    pure internal 
+    returns (address){
+        bytes32 hashedMessage = keccak256(abi.encodePacked(receiver_));
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32"; // note: this requires that the client abide by EIP-191 when signing
+        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, hashedMessage));
 
-        return false;
+        return ecrecover(prefixedHashMessage, v_, r_, s_);
     }
 }
