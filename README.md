@@ -1,4 +1,4 @@
-# Connaître: A Framework for Anon Identity Bounties
+# Connaître: who knows you, anon?
 
 <a href="https://en.wikipedia.org/wiki/On_the_Internet,_nobody_knows_you%27re_a_dog">
     <img src="./assets/dog.jpg" alt="drawing" width=400; style="display: block; margin-left: auto;
@@ -9,20 +9,33 @@
 Bug bounties are cool because companies can tap into a global talent pool to discover problems. Wouldn't it be *also* be cool if there were a way for anons to tap into a global talent pool of internet snoopers to see if anyone can discover their secret identity?
 
 ## Bounty constraints
-1. The security researcher doesn't trust the anonymous account running the bounty. The researcher must have a guarantee that the account will pay up if the researcher knows the anon's personal info.
-2. The anon does not want their personal info to be leaked. Therefore, this bounty program must run in a way where the security researcher need not publicize the anon's information to the world.
+Here are some constraints imposed by Alice the Anon and Sammy the Snooper.
+1. Sammy doesn't trust Alice. When Alice creates the bounty, Sammy must have a guarantee that Alice will pay, otherwise Sammy will not begin snooping.
+2. Alice does not want her personal info to be leaked. Therefore, this bounty program must run in a way where the Sammy can prove that they know Alice's public info without publicizing that info to the world Alice's information.
 
-The way to address these constraints is to codify the rules of the anon bounty into a smart contract, of course!
+The way to address these constraints is through a smart contract, of course!
 
 ## High-level workflow
-1. The anon deploys the contract `Connaitre.sol` and sends some amount of ERC20 token to it to be used as a bounty.
-2. The security researcher (i.e. prover) reserves some number of blocks over which they will be the only address allowed to submit a proof of knowledge. To buy this opportunity, they must put ERC20 into escrow on `Connaitre.sol`. Thus, their workflow is to approve ERC20 token for `Connaitre.sol` and then invoke `reserveWindow()`.
-3. After some number of blocks passes, but while the window for depositing is still open, the prover submits their proof of knowledge via the `proveKnowledgeAndClaim()` function.
+1. The anon runs the script `script/create-signature.js` and deploys the contract `Connaitre.sol` with the ethereum address `ANON_INFO_ADDRESS` generated in that script. The anon separately sends ERC20 token to the contract to be used as a bounty.
+2. The snooper (i.e. prover) finds the personal information of the anon, and they run `script/create-signature.js` to create a signature _from the account associated with `ANON_INFO_ADDRESS`_, and the signature payload is the address where the bounty should be sent (`RECEIVER_ADDRESS`). 
+3. The prover then uses the v, r, and s parameters, along with `RECEIVER_ADDRESS`, to invoke `Connaitre.proveKnowledgeAndClaim()`, proving that they know the private key assocated with `ANON_INFO_ADDRESS`. Assuming the contract has sufficient funding, it then sends the bounty to the `RECEIVER_ADDRESS`.
+
+## Use Cases
+1. Pretentious people who want some level of comfort knowing that nobody knows their anon identity.
 
 ## Mempool considerations
-A skeptical reader may wonder, "why make a reserve window instead of having provers submit their proof at once?". The answer is simple: that would be directly front-runnable. An adversarial miner would be able to replace the `tx.origin` with their own, or other mempool-snoopers would be willing to outbid the prover. However, when we introduce an interval where only the escrow depositor is willing to deposit, it is no longer feasible for mempool snoopers to replace the prover's transactions. If someone replaces the prover's `reserveWindow()` call, then the prover has no incentive to call `proveKnowledgeAndClaim()` (since it would revert), and thus the one who invoked `reserveWindow()` would be out their escrow dollars. If someone replaces the prover's `proveKnowledgeAndClaim()` call, then it will revert since only the prover can call that function during the reserved window.
+The Connaitre contract has a lump sum payoff to the first to successfully invoke the `proveKnowledgeAndClaim()` function. This is typically cause for concern, since miners snooping in the mempool may use their transaction inclusion and transaction ordering powers to maximize their own bottom line. We address each separately.
 
-Unfortunately there is still the possibility that the anon running the bounty program might themselves front-run a prover's attempts. For instance, if the anon sees that a prover was willing to put an escrow down in an effort to claim the bounty, this may be enough information for the anon to learn that their identity has been compromised, at which point they might try to invoke `reserveWindow()` in front of the prover. The prover can make this difficult by deploying a contract of their own to invoke `reserveWindow()`, but that is still not fool-proof from a motivated mem-pool snooping anon.
+**Will miners include a block with this transaction?**
+Assuming that the miner is not directly involved in the search for this anon's 
+
+**Will miners modify this transaction's order in the block to their advantage?**
+The only way that transaction reordering helps here is if reordering the transactions means the miner can seek rent from (a) submitting the proof themselves, or (b) taking a higher gas fee from a search who submits the proof. However, creating this proof requires that the prover know the private key `K_s` to `ANON_INFO_ADDRESS`. Assuming that mempool snoopers don't have access to `K_s`, no intrablock transaction reordering attacks will occur.
+
+**How would the anon act here?**
+If the anon were the miner, then they would have the ability to place their own proof above the prover's proof, sending the bounty back to a wallet controlled by the anon. However this is a super remote possibility that I frankly don't entertain. What's slightly more likely is that the miner is snooping in the mempool and willing to compete in a PGA with the prover once the prover submits their proof. This way, the anon would still be able to learn that somebody has their identity, while not needing to pay out the bounty and instead just paying a high gas fee to a miner.
+
+If the prover is really concerned about this, they can submit their proof transaction to the network via trusted miners on a private relay like Flashbots or Ethermine.
 
 ## Contributing
 Feel free to contact me on twitter at [@max_holloway](https://twitter.com/max_holloway) or raise an issue here if you think you can help out!
