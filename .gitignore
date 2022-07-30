@@ -6,3 +6,9 @@ out/
 !/broadcast
 /broadcast/*
 /broadcast/*/31337/
+
+# JS
+script/node_modules
+
+# Python
+venv
